@@ -55,7 +55,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                             ),
                             SizedBox(width: 16),
                             Text(
-                              'KeepSafe',
+                              'Donjo',
                               style: Theme.of(context).textTheme.headlineLarge
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
