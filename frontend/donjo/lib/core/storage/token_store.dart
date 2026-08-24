@@ -34,6 +34,8 @@ class TokenStore {
     _token = null;
     try {
       await _storage.delete(key: _tokenKey);
-    } on Exception {}
+    } on Exception {
+      // Ignore exceptions during clear
+    }
   }
 }

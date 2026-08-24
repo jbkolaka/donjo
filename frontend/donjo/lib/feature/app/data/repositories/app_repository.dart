@@ -22,7 +22,7 @@ class AppRepository {
   Future<HealthStatus> health() async {
     try {
       final response = await _dio.get<dynamic>('/health');
-      return HealthStatus.fromJson(_asMap(response.data));
+      return HealthStatus.fromMap(_asMap(response.data));
     } on DioException catch (error) {
       throw ApiException.fromDio(error);
     }
@@ -31,7 +31,7 @@ class AppRepository {
   Future<MetaCatalog> meta() async {
     try {
       final response = await _dio.get<dynamic>('/meta');
-      return MetaCatalog.fromJson(_asMap(response.data));
+      return MetaCatalog.fromMap(_asMap(response.data));
     } on DioException catch (error) {
       throw ApiException.fromDio(error);
     }
