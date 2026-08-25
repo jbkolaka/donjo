@@ -1,4 +1,4 @@
-import 'package:donjo/feature/app/presentation/pages/splash_screen.dart';
+import 'package:donjo/feature/authentication/presentation/pages/initial_screen.dart';
 import 'package:donjo/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
@@ -33,7 +33,7 @@ class _MyAppState extends State<MyApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
-      home: Splash(),
+      home: InitialScreen(),
     );
   }
 }

@@ -7,14 +7,15 @@ import 'package:donjo/core/storage/token_store.dart';
 import 'package:donjo/feature/app/data/models/app_model.dart';
 
 class AppRepository {
-  AppRepository({required this.tokenStore, this.onUnauthorized})
-    : _dio = createZoaDio(
-        tokenStore: tokenStore,
-        onUnauthorizedProvider: () => onUnauthorized,
-      );
+  AppRepository({required this.tokenStore, this.onUnauthorized}) {
+    _dio = createZoaDio(
+      tokenStore: tokenStore,
+      onUnauthorizedProvider: () => onUnauthorized,
+    );
+  }
 
   final TokenStore tokenStore;
-  final Dio _dio;
+  late final Dio _dio;
   VoidCallback? onUnauthorized;
 
   String get baseUrl => _dio.options.baseUrl;
