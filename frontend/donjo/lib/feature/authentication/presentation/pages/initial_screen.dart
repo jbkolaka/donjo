@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'signin_screen.dart';
+import 'package:flutter/gestures.dart';
 
 class InitialScreen extends StatefulWidget {
   const InitialScreen({super.key});
+  static Route<dynamic> route() {
+    return MaterialPageRoute(builder: (context) => const InitialScreen());
+  }
+
   @override
   State<InitialScreen> createState() => _InitialScreenState();
 }
@@ -35,12 +41,17 @@ class _InitialScreenState extends State<InitialScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    'Login',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w400,
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.primary,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(context, SignInScreen.route());
+                    },
+                    child: Text(
+                      'Login',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w400,
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
