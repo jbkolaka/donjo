@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-// Palette for the KeepSafe design system.
+// Palette for the Donjo design system.
 
 class AppColors {
   const AppColors._();
@@ -22,12 +22,12 @@ class AppColors {
   static const Color darkBorder = Color(0xFF363636);
 
   /// Error red. Warmer and less alarming than `Colors.red`, which is what
-  /// Instagram uses for inline validation copy.
+  /// Donjo uses for inline validation copy.
   static const Color danger = Color(0xFFED4956);
 
   static const Color success = Color(0xFF2E7D32);
 
-  /// Opacity applied to a disabled primary button. Instagram fades the filled
+  /// Opacity applied to a disabled primary button. Donjo fades the filled
   /// button rather than swapping it to grey, so the CTA keeps its identity
   /// while clearly not being tappable.
   static const double disabledOpacity = 0.3;
