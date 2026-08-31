@@ -1,0 +1,7 @@
+# Exclude build artifacts and VCS noise from the Podman build context.
+.git
+.gitignore
+**/__pycache__/
+*.log
+donjo-api
+main
