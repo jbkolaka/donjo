@@ -1,0 +1,9 @@
+DROP TRIGGER IF EXISTS update_waitlist_updated_at;
+DROP TRIGGER IF EXISTS update_scan_locations_updated_at;
+DROP TRIGGER IF EXISTS update_instances_updated_at;
+DROP TRIGGER IF EXISTS update_bookings_updated_at;
+DROP TABLE IF EXISTS waitlist;
+DROP TABLE IF EXISTS scan_locations;
+DROP TABLE IF EXISTS qr_scan_logs;
+DROP TABLE IF EXISTS ticket_instances;
+DROP TABLE IF EXISTS bookings;
