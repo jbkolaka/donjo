@@ -7,15 +7,21 @@ CREATE TABLE users (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
 
     -- Authentication credentials
+    -- Plaintext email/phone are stored encrypted; the *_hash columns carry
+    -- keyed fingerprints for unique lookups without ever matching on ciphertext.
     email TEXT UNIQUE NOT NULL,
+    email_hash TEXT UNIQUE,
     password_hash TEXT NOT NULL,
 
     -- Personal information
     full_name TEXT NOT NULL,
     username TEXT UNIQUE NOT NULL,
-    age INTEGER NOT NULL CHECK (age >= 13 AND age <= 150),
+    date_of_birth TEXT,
+    age INTEGER DEFAULT 18 CHECK (age >= 13 AND age <= 150),
     phone_number TEXT UNIQUE NOT NULL,
+    phone_hash TEXT UNIQUE,
     mpesa_phone_number TEXT UNIQUE,
+    mpesa_hash TEXT UNIQUE,
 
     -- Profile
     profile_image TEXT,

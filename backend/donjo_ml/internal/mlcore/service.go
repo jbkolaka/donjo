@@ -314,49 +314,58 @@ func (s *MLService) RecordInteraction(userID string, in InteractionIn) error {
 // feature vectors are cached on event_embeddings, so this is a weighted sum.
 func (s *MLService) rebuildUser(userID string) error {
 	rows, err := s.db.Query(`
-		SELECT event_id, venue_id, interaction_type, interaction_weight, duration_seconds
+		SELECT event_id, interaction_weight
 		FROM user_interactions WHERE user_id = ? AND event_id IS NOT NULL`, userID)
 	if err != nil {
 		return fmt.Errorf("load interactions: %w", err)
 	}
-	defer rows.Close()
 
-	sparse := Sparse{}
-	catWeights := map[string]float64{}
-	venueWeights := map[string]float64{}
-	timeWeights := map[string]float64{}
-	count := 0
-
+	type pair struct {
+		eventID string
+		weight  float64
+	}
+	var pairs []pair
 	for rows.Next() {
-		var eventID, venueID, typ sql.NullString
+		var eventID sql.NullString
 		var weight int
-		var dur sql.NullInt64
-		if err := rows.Scan(&eventID, &venueID, &typ, &weight, &dur); err != nil {
+		if err := rows.Scan(&eventID, &weight); err != nil {
+			rows.Close()
 			return err
 		}
 		if !eventID.Valid || eventID.String == "" {
 			continue
 		}
-		count++
-		w := float64(weight)
-		ev, evErr := s.loadEventSparse(eventID.String)
-		if evErr == nil && ev.sparse != nil {
-			SparseAdd(sparse, ev.sparse, w)
-		}
-		if ev.payload != nil {
-			if c := ev.payload.Category; c != "" {
-				catWeights[c] += w
-			}
-			if v := ev.payload.VenueID; v != "" {
-				venueWeights[v] += w
-			}
-			for _, tf := range timeTokens(ev.payload.StartTime) {
-				timeWeights[tf] += w
-			}
-		}
+		pairs = append(pairs, pair{eventID.String, float64(weight)})
 	}
 	if err := rows.Err(); err != nil {
+		rows.Close()
 		return err
+	}
+	rows.Close()
+
+	sparse := Sparse{}
+	catWeights := map[string]float64{}
+	venueWeights := map[string]float64{}
+	timeWeights := map[string]float64{}
+	count := len(pairs)
+
+	for _, p := range pairs {
+		w := p.weight
+		ev, evErr := s.loadEventSparse(p.eventID)
+		if evErr == nil && ev.sparse != nil {
+			SparseAdd(sparse, ev.sparse, w)
+			if ev.payload != nil {
+				if c := ev.payload.Category; c != "" {
+					catWeights[c] += w
+				}
+				if v := ev.payload.VenueID; v != "" {
+					venueWeights[v] += w
+				}
+				for _, tf := range timeTokens(ev.payload.StartTime) {
+					timeWeights[tf] += w
+				}
+			}
+		}
 	}
 
 	profile := &UserProfile{

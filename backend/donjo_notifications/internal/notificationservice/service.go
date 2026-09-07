@@ -136,16 +136,18 @@ func (s *Service) NotificationByID(userID, id string) (*Notification, error) {
 
 	n := &Notification{}
 	var subject, html, tmplID, tmplData, sentAt, delAt, readAt, clickAt,
-		errorMsg, refID, refType, meta sql.NullString
+		errorMsg, refID, refType, meta, createdAt, updatedAt sql.NullString
 	if err := row.Scan(&n.ID, &n.UserID, &n.Channel, &n.Type, &subject, &n.Content,
 		&html, &tmplID, &tmplData, &n.Status, &sentAt, &delAt, &readAt, &clickAt,
 		&errorMsg, &n.RetryCount, &n.Priority, &refID, &refType, &meta,
-		&n.CreatedAt, &n.UpdatedAt); err != nil {
+		&createdAt, &updatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		}
 		return nil, err
 	}
+	n.CreatedAt = parseTimeValue(createdAt.String)
+	n.UpdatedAt = parseTimeValue(updatedAt.String)
 	n.Subject = subject.String
 	n.HTMLContent = html.String
 	n.TemplateID = tmplID.String
@@ -198,13 +200,15 @@ func (s *Service) ListNotifications(userID, status string, limit int) ([]*Notifi
 	for rows.Next() {
 		n := &Notification{}
 		var subject, html, tmplID, tmplData, sentAt, delAt, readAt, clickAt,
-			errorMsg, refID, refType, meta sql.NullString
+			errorMsg, refID, refType, meta, createdAt, updatedAt sql.NullString
 		if err := rows.Scan(&n.ID, &n.UserID, &n.Channel, &n.Type, &subject, &n.Content,
 			&html, &tmplID, &tmplData, &n.Status, &sentAt, &delAt, &readAt, &clickAt,
 			&errorMsg, &n.RetryCount, &n.Priority, &refID, &refType, &meta,
-			&n.CreatedAt, &n.UpdatedAt); err != nil {
+			&createdAt, &updatedAt); err != nil {
 			return nil, err
 		}
+		n.CreatedAt = parseTimeValue(createdAt.String)
+		n.UpdatedAt = parseTimeValue(updatedAt.String)
 		n.Subject = subject.String
 		n.HTMLContent = html.String
 		n.TemplateID = tmplID.String
@@ -322,13 +326,18 @@ func (s *Service) Feed(userID string, limit int, unreadOnly bool) ([]*FeedItem, 
 	var out []*FeedItem
 	for rows.Next() {
 		it := &FeedItem{}
-		var notifID, title, message, imageURL, viewedAt, clickedAt, interactedAt, expiresAt sql.NullString
+		var notifID, title, message, imageURL, viewedAt, clickedAt, interactedAt, expiresAt,
+			createdAt, updatedAt sql.NullString
+		var position sql.NullInt64
 		var viewed, clicked, interacted int
 		if err := rows.Scan(&it.ID, &it.UserID, &notifID, &it.FeedType, &it.Priority,
-			&it.Position, &title, &message, &imageURL, &viewed, &viewedAt, &clicked,
-			&clickedAt, &interacted, &interactedAt, &expiresAt, &it.CreatedAt, &it.UpdatedAt); err != nil {
+			&position, &title, &message, &imageURL, &viewed, &viewedAt, &clicked,
+			&clickedAt, &interacted, &interactedAt, &expiresAt, &createdAt, &updatedAt); err != nil {
 			return nil, err
 		}
+		it.Position = int(position.Int64)
+		it.CreatedAt = parseTimeValue(createdAt.String)
+		it.UpdatedAt = parseTimeValue(updatedAt.String)
 		it.NotificationID = notifID.String
 		it.Title = title.String
 		it.Message = message.String
@@ -481,16 +490,18 @@ type scanner interface {
 
 func scanDevice(row scanner) (*PushDevice, error) {
 	d := &PushDevice{}
-	var deviceID, deviceName, lastUsed sql.NullString
+	var deviceID, deviceName, lastUsed, createdAt, updatedAt sql.NullString
 	var active int
 	if err := row.Scan(&d.ID, &d.UserID, &d.DeviceToken, &d.Platform, &deviceID,
-		&deviceName, &active, &lastUsed, &d.CreatedAt, &d.UpdatedAt); err != nil {
+		&deviceName, &active, &lastUsed, &createdAt, &updatedAt); err != nil {
 		return nil, err
 	}
 	d.DeviceID = deviceID.String
 	d.DeviceName = deviceName.String
 	d.IsActive = active == 1
 	d.LastUsedAt = parseTimePtr(lastUsed.String)
+	d.CreatedAt = parseTimeValue(createdAt.String)
+	d.UpdatedAt = parseTimeValue(updatedAt.String)
 	return d, nil
 }
 

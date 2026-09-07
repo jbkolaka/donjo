@@ -16,7 +16,6 @@ ALTER TABLE event_embeddings ADD COLUMN start_time TEXT;
 ALTER TABLE event_embeddings ADD COLUMN end_time TEXT;
 ALTER TABLE event_embeddings ADD COLUMN city TEXT;
 ALTER TABLE event_embeddings ADD COLUMN category TEXT;
-ALTER TABLE event_embeddings ADD COLUMN feature_version INTEGER DEFAULT 1;
 
 ALTER TABLE user_embeddings ADD COLUMN interaction_count INTEGER DEFAULT 0;
 
