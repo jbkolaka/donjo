@@ -1,0 +1,29 @@
+# API gateway routing to the backend microservices.
+#
+# Local dev: every service runs on host ports (8080-8086) and the gateway
+# reaches them via localhost (the defaults in .env). When deployed so the
+# services share one compose network, point AUTH_SERVICE_URL etc. at the
+# compose service names instead (e.g. http://donjo_backend:8080).
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    restart: unless-stopped
+    ports:
+      - "${PORT}:${PORT}"
+    environment:
+      APP_ENV: ${APP_ENV}
+      PORT: ${PORT}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+      EVENT_SERVICE_URL: ${EVENT_SERVICE_URL}
+      BOOKING_SERVICE_URL: ${BOOKING_SERVICE_URL}
+      PAYMENT_SERVICE_URL: ${PAYMENT_SERVICE_URL}
+      SEARCH_SERVICE_URL: ${SEARCH_SERVICE_URL}
+      ML_SERVICE_URL: ${ML_SERVICE_URL}
+      NOTIFICATIONS_SERVICE_URL: ${NOTIFICATIONS_SERVICE_URL}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS}
+      MAX_BODY_BYTES: ${MAX_BODY_BYTES}
+      HEALTH_TTL_SECONDS: ${HEALTH_TTL_SECONDS}
