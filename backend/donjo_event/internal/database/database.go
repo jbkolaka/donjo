@@ -32,16 +32,28 @@ type service struct {
 }
 
 var (
-	dburl      = os.Getenv("BLUEPRINT_DB_URL")
 	dbInstance *service
 )
+
+// dbURL resolves the SQLite file location lazily so tests can override it via
+// the environment before the first New() call.
+func dbURL() string {
+	if raw := os.Getenv("BLUEPRINT_DB_URL"); raw != "" {
+		return raw
+	}
+	return "./db/donjo_event.db"
+}
 
 func New() Service {
 	if dbInstance != nil {
 		return dbInstance
 	}
 
-	db, err := sql.Open("sqlite3", dburl)
+	if err := ensureDBDir(dbURL()); err != nil {
+		log.Fatal(err)
+	}
+
+	db, err := sql.Open("sqlite3", dbURL())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -114,6 +126,20 @@ func (s *service) Migrate(migrationsDir string) error {
 	return nil
 }
 
+// ensureDBDir creates the directory for the SQLite file when the configured
+// URL is a file path (e.g. ./db/donjo_event.db).
+func ensureDBDir(raw string) error {
+	raw = strings.TrimPrefix(raw, "file:")
+	if strings.Contains(raw, "?") {
+		raw = raw[:strings.Index(raw, "?")]
+	}
+	dir := filepath.Dir(raw)
+	if dir == "." || dir == "" || dir == string(filepath.Separator) {
+		return nil
+	}
+	return os.MkdirAll(dir, 0o755)
+}
+
 func (s *service) Health() map[string]string {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -160,6 +186,6 @@ func (s *service) Health() map[string]string {
 }
 
 func (s *service) Close() error {
-	log.Printf("Disconnected from database: %s", dburl)
+	log.Printf("Disconnected from database: %s", dbURL())
 	return s.db.Close()
 }

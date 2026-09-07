@@ -1,0 +1,2 @@
+# runtime SQLite databases (auto-created by each service in its own db/ dir)
+backend/*/db/

@@ -32,16 +32,24 @@ type service struct {
 }
 
 var (
-	dburl      = os.Getenv("BLUEPRINT_DB_URL")
 	dbInstance *service
 )
+
+// dbURL resolves the SQLite file location lazily so tests can override it via
+// the environment before the first New() call.
+func dbURL() string {
+	if raw := os.Getenv("BLUEPRINT_DB_URL"); raw != "" {
+		return raw
+	}
+	return "./db/donjo_ml.db"
+}
 
 func New() Service {
 	if dbInstance != nil {
 		return dbInstance
 	}
 
-	db, err := sql.Open("sqlite3", dburl)
+	db, err := sql.Open("sqlite3", dbURL())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -62,7 +70,7 @@ func (s *service) DB() *sql.DB {
 // tracking applied versions in schema_migrations. Each migration runs in its
 // own transaction.
 func (s *service) Migrate(migrationsDir string) error {
-	if err := ensureDBDir(dburl); err != nil {
+	if err := ensureDBDir(dbURL()); err != nil {
 		return fmt.Errorf("ensure db directory: %w", err)
 	}
 
@@ -166,6 +174,6 @@ func (s *service) Health() map[string]string {
 }
 
 func (s *service) Close() error {
-	log.Printf("Disconnected from database: %s", dburl)
+	log.Printf("Disconnected from database: %s", dbURL())
 	return s.db.Close()
 }

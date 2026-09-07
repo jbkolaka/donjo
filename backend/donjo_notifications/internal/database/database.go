@@ -41,7 +41,7 @@ func dbURL() string {
 	if raw := os.Getenv("BLUEPRINT_DB_URL"); raw != "" {
 		return raw
 	}
-	return "./db/notification.db"
+	return "./db/donjo_notifications.db"
 }
 
 func New() Service {
@@ -134,7 +134,7 @@ func (s *service) Migrate(migrationsDir string) error {
 // on connection; a plain path is turned into "path?_foreign_keys=on".
 func foreignKeysDSN(raw string) string {
 	if raw == "" {
-		raw = "./db/notification.db"
+		raw = "./db/donjo_notifications.db"
 	}
 	if strings.Contains(raw, "?") {
 		return raw + "&_foreign_keys=on"
@@ -143,7 +143,7 @@ func foreignKeysDSN(raw string) string {
 }
 
 // ensureDBDir creates the directory for the SQLite file when the configured
-// URL is a file path (e.g. ./db/notification.db).
+// URL is a file path (e.g. ./db/donjo_notifications.db).
 func ensureDBDir(raw string) error {
 	raw = strings.TrimPrefix(raw, "file:")
 	if strings.Contains(raw, "?") {
