@@ -1,0 +1,33 @@
+# API gateway: its own Podman deployment. Routes to the other donjo
+# microservices by their container names over the external `donjo-net` network.
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: Containerfile
+      target: prod
+    container_name: donjo_gateway
+    image: localhost/donjo_gateway:latest
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8087}:${PORT:-8087}"
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      PORT: ${PORT:-8087}
+      AUTH_SERVICE_URL: http://donjo_backend:8080
+      EVENT_SERVICE_URL: http://donjo_event:8081
+      BOOKING_SERVICE_URL: http://donjo_booking:8082
+      PAYMENT_SERVICE_URL: http://donjo_payment:8083
+      SEARCH_SERVICE_URL: http://donjo_search:8084
+      ML_SERVICE_URL: http://donjo_ml:8085
+      NOTIFICATIONS_SERVICE_URL: http://donjo_notifications:8086
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+      RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS:-1000}
+      MAX_BODY_BYTES: ${MAX_BODY_BYTES:-20971520}
+      HEALTH_TTL_SECONDS: ${HEALTH_TTL_SECONDS:-5}
+    networks:
+      - donjo-net
+
+networks:
+  donjo-net:
+    external: true

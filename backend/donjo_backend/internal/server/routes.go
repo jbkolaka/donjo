@@ -3,11 +3,14 @@ package server
 import (
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+
+	"donjo_backend/internal/ratelimit"
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
@@ -33,6 +36,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}
 
 	authGroup := r.Group("/api/v1/auth")
+	authGroup.Use(bodyLimit(maxBodyBytes()))
+	authGroup.Use(authLimiter.Middleware())
 	{
 		authGroup.POST("/register", s.authH.Register)
 		authGroup.POST("/login", s.authH.Login)
@@ -43,6 +48,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}
 
 	protected := r.Group("/api/v1")
+	protected.Use(bodyLimit(maxBodyBytes()))
+	protected.Use(apiLimiter.Middleware())
 	protected.Use(s.authMw.RequireAuth())
 	{
 		protected.GET("/me", s.authH.Me)
@@ -83,6 +90,49 @@ func corsOrigins() []string {
 		}
 	}
 	return []string{"http://localhost:5173"}
+}
+
+// authLimiter is the strict per-IP budget for credential endpoints
+// (register/login/refresh/password reset) — brute-force protection.
+var authLimiter = ratelimit.New(authRateLimitRequests(), time.Minute)
+
+// apiLimiter is the per-IP budget for authenticated account endpoints.
+var apiLimiter = ratelimit.New(apiRateLimitRequests(), time.Minute)
+
+// bodyLimit caps the request body size. When a client exceeds it,
+// MaxBytesReader makes BindJSON fail, so oversized requests are rejected
+// before they can consume unbounded memory.
+func bodyLimit(maxBytes int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.Body != nil {
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
+		}
+		c.Next()
+	}
+}
+
+func authRateLimitRequests() int {
+	return envInt("AUTH_RATE_LIMIT_REQUESTS", 20)
+}
+
+func apiRateLimitRequests() int {
+	return envInt("API_RATE_LIMIT_REQUESTS", 300)
+}
+
+func maxBodyBytes() int64 {
+	if v := envInt("MAX_BODY_BYTES", 5<<20); v > 0 {
+		return int64(v)
+	}
+	return 5 << 20
+}
+
+func envInt(key string, def int) int {
+	if raw := os.Getenv(key); raw != "" {
+		if n, err := strconv.Atoi(raw); err == nil && n > 0 {
+			return n
+		}
+	}
+	return def
 }
 
 func secureHeaders() gin.HandlerFunc {

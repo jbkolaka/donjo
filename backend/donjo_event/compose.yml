@@ -1,0 +1,31 @@
+# donjo_event: its own Podman deployment. It publishes to / consumes from the
+# shared RabbitMQ (infra) on the external `donjo-net` network and keeps its
+# SQLite DB in a named volume.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Containerfile
+      target: prod
+    container_name: donjo_event
+    image: localhost/donjo_event:latest
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8081}:${PORT:-8081}"
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      PORT: ${PORT:-8081}
+      BLUEPRINT_DB_URL: ${BLUEPRINT_DB_URL:-./db/donjo_event.db}
+      JWT_SECRET: ${JWT_SECRET:-35676ba264d618c86f8e950ecc33bb65658f423f01117ab63f3700d5bb9e6b35}
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    volumes:
+      - sqlite_bp:/app/db
+    networks:
+      - donjo-net
+
+volumes:
+  sqlite_bp:
+
+networks:
+  donjo-net:
+    external: true

@@ -339,6 +339,44 @@ func (r *UserRepository) UpdateProfileImage(ctx context.Context, userID, url str
 	return n > 0, nil
 }
 
+// IncrementTicketsBought bumps the buyer's tickets_sold and total_spent.
+func (r *UserRepository) IncrementTicketsBought(ctx context.Context, userID string, qty int, amount float64) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE users SET tickets_sold = tickets_sold + ?, total_spent = total_spent + ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL`,
+		qty, amount, time.Now().Format("2006-01-02 15:04:05"), userID,
+	)
+	return err
+}
+
+// IncrementEarnings bumps the event creator's total_earned and wallet balance.
+func (r *UserRepository) IncrementEarnings(ctx context.Context, userID string, amount float64) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE users SET total_earned = total_earned + ?, wallet_balance = wallet_balance + ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL`,
+		amount, amount, time.Now().Format("2006-01-02 15:04:05"), userID,
+	)
+	return err
+}
+
+// AdjustEventsCreated increments (delta=+1) or decrements (delta=-1) the
+// creator's event counter; the floor is zero.
+func (r *UserRepository) AdjustEventsCreated(ctx context.Context, userID string, delta int) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE users SET events_created = MAX(events_created + ?, 0), updated_at = ? WHERE id = ? AND deleted_at IS NULL`,
+		delta, time.Now().Format("2006-01-02 15:04:05"), userID,
+	)
+	return err
+}
+
+// AdjustVenuesListed increments (delta=+1) or decrements (delta=-1) the
+// owner's venue counter; the floor is zero.
+func (r *UserRepository) AdjustVenuesListed(ctx context.Context, userID string, delta int) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE users SET venues_listed = MAX(venues_listed + ?, 0), updated_at = ? WHERE id = ? AND deleted_at IS NULL`,
+		delta, time.Now().Format("2006-01-02 15:04:05"), userID,
+	)
+	return err
+}
+
 func parseTime(s sql.NullString) *time.Time {
 	if !s.Valid || s.String == "" {
 		return nil

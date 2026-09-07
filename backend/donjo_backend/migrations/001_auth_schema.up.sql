@@ -1,8 +1,5 @@
--- =============================================
 -- DONJO AUTHENTICATION DATABASE SCHEMA
 -- SQLite
--- =============================================
-
 -- =============================================
 -- 1. USERS TABLE (Core authentication)
 -- =============================================
@@ -10,20 +7,20 @@ CREATE TABLE users (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
 
     -- Authentication credentials
-    -- email, phone_number, mpesa_phone_number hold AES-256-GCM encrypted
-    -- values. The *_hash columns are deterministic blind indexes used for
-    -- lookups and uniqueness enforcement.
-    email TEXT NOT NULL,
-    email_hash TEXT UNIQUE NOT NULL,
+    -- Plaintext email/phone are stored encrypted; the *_hash columns carry
+    -- keyed fingerprints for unique lookups without ever matching on ciphertext.
+    email TEXT UNIQUE NOT NULL,
+    email_hash TEXT UNIQUE,
     password_hash TEXT NOT NULL,
 
     -- Personal information
     full_name TEXT NOT NULL,
     username TEXT UNIQUE NOT NULL,
-    date_of_birth TEXT NOT NULL CHECK (date_of_birth GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
-    phone_number TEXT NOT NULL,
-    phone_hash TEXT UNIQUE NOT NULL,
-    mpesa_phone_number TEXT,
+    date_of_birth TEXT,
+    age INTEGER DEFAULT 18 CHECK (age >= 13 AND age <= 150),
+    phone_number TEXT UNIQUE NOT NULL,
+    phone_hash TEXT UNIQUE,
+    mpesa_phone_number TEXT UNIQUE,
     mpesa_hash TEXT UNIQUE,
 
     -- Profile
@@ -351,10 +348,10 @@ CREATE TABLE audit_log (
 -- INDEXES
 -- =============================================
 
-CREATE INDEX idx_users_email ON users(email_hash);
+CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_username ON users(username);
-CREATE INDEX idx_users_phone ON users(phone_hash);
-CREATE INDEX idx_users_mpesa ON users(mpesa_hash);
+CREATE INDEX idx_users_phone ON users(phone_number);
+CREATE INDEX idx_users_mpesa ON users(mpesa_phone_number);
 CREATE INDEX idx_users_status ON users(account_status);
 CREATE INDEX idx_users_trust ON users(trust_score);
 CREATE INDEX idx_users_created ON users(created_at);
@@ -422,8 +419,38 @@ END;
 
 -- =============================================
 -- DEFAULT DATA
---
--- No seeded users here: with email/phone encrypted at the app layer,
--- the default admin and any bootstrap users are created by the
--- application on first startup (see internal/auth/bootstrap).
 -- =============================================
+
+INSERT INTO users (
+    id,
+    email,
+    password_hash,
+    full_name,
+    username,
+    age,
+    phone_number,
+    mpesa_phone_number,
+    is_admin,
+    email_verified,
+    phone_verified,
+    identity_verified,
+    account_status,
+    trust_score,
+    trust_level
+) VALUES (
+    '00000000-0000-0000-0000-000000000001',
+    'admin@donjo.com',
+    'CHANGE_ME_IN_APPLICATION',
+    'Donjo Admin',
+    'admin',
+    30,
+    '254700000000',
+    '254700000000',
+    1,
+    1,
+    1,
+    1,
+    'active',
+    100,
+    'verified'
+) ON CONFLICT (email) DO NOTHING;

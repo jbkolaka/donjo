@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -40,11 +41,23 @@ func main() {
 
 	go gracefulShutdown(server, done)
 
-	err := server.ListenAndServe()
+	err := serve(server)
 	if err != nil && err != http.ErrServerClosed {
 		panic(fmt.Sprintf("http server error: %s", err))
 	}
 
 	<-done
 	log.Println("Graceful shutdown complete.")
+}
+
+// serve starts the HTTP server, terminating TLS when TLS_CERT_FILE and
+// TLS_KEY_FILE are both set, otherwise plain HTTP for local development.
+func serve(srv *http.Server) error {
+	cert, key := os.Getenv("TLS_CERT_FILE"), os.Getenv("TLS_KEY_FILE")
+	if cert != "" && key != "" {
+		log.Printf("listening with TLS (cert=%s)", cert)
+		return srv.ListenAndServeTLS(cert, key)
+	}
+	log.Printf("listening without TLS (set TLS_CERT_FILE and TLS_KEY_FILE to enable HTTPS)")
+	return srv.ListenAndServe()
 }

@@ -1,4 +1,5 @@
 # syntax=docker/dockerfile:1
+# Podman Containerfile for donjo_backend (Auth service)
 
 # ---- Build stage ----
 # The SQLite driver (mattn/go-sqlite3) requires cgo, so we build with CGO
@@ -9,7 +10,6 @@ RUN apk add --no-cache gcc musl-dev
 
 WORKDIR /src
 
-# Cache module downloads separately from source for faster rebuilds.
 COPY go.mod go.sum ./
 RUN go mod download
 
@@ -18,27 +18,22 @@ COPY . .
 RUN CGO_ENABLED=1 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/donjo-api ./cmd/api
 
 # ---- Runtime stage ----
-# Runs the built binary in a bare Alpine image.
-FROM alpine:3.21
+# Runs the built binary in a lightweight Alpine image.
+FROM alpine:3.21 AS prod
 
 RUN apk add --no-cache ca-certificates tzdata
 
 WORKDIR /app
 
-# The binary, the SQLite migrations dir, and the preloaded env file.
+# The binary, the SQLite migrations dir, and the entrypoint script.
 COPY --from=build /out/donjo-api /app/donjo-api
 COPY --from=build /src/migrations /app/migrations
-COPY .env /app/.env
-
-# Directory where uploaded profile pictures are stored. Declared as a volume
-# so uploads survive container rebuilds; mount a host path or named volume
-# over /app/uploads to persist them (the app defaults UPLOAD_DIR=uploads).
-RUN mkdir -p /app/uploads
-VOLUME ["/app/uploads"]
-
-# Simple supervisor so the runtime image stays minimal.
 COPY --from=build /src/donjo-api-entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod +x /usr/local/bin/entrypoint
+
+# Directory where uploaded profile pictures and sqlite db are stored.
+RUN mkdir -p /app/uploads /app/db
+VOLUME ["/app/uploads", "/app/db"]
 
 EXPOSE 8080
 

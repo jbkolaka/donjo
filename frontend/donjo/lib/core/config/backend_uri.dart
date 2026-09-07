@@ -1,35 +1,35 @@
-library;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
-import 'dart:io';
-
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:flutter/foundation.dart';
-
+/// Backend endpoint for the Donjo API.
 class BackendUri {
-  static const String renderUrl = 'https://donjo-api-qwxb.onrender.com';
-  static const int port = 8080;
-  static const String desktopUrl = 'http://localhost:$port';
+  const BackendUri._();
 
-  static String backendUri = desktopUrl;
-
-  static Future<String> resolve() async {
+  /// Base URL used by the API client when no explicit base URL is supplied.
+  static String get backendUri {
     if (kIsWeb) {
-      return backendUri = renderUrl;
+      return 'http://localhost:8080';
     }
-    if (Platform.isAndroid) {
-      final android = await DeviceInfoPlugin().androidInfo;
-      if (!android.isPhysicalDevice) {
-        return backendUri = 'http://10.0.2.2:$port';
-      }
-      return backendUri = 'http://127.0.0.1:$port';
-    }
-    if (Platform.isIOS) {
-      final ios = await DeviceInfoPlugin().iosInfo;
-      if (!ios.isPhysicalDevice) {
-        return backendUri = 'http://127.0.0.1:$port';
-      }
-      return backendUri = renderUrl;
-    }
-    return backendUri = desktopUrl;
+    return const String.fromEnvironment(
+      'API_BASE_URL',
+      defaultValue: 'http://localhost:8080',
+    );
   }
+}
+
+class AppConfig {
+  // Use different base URLs for web vs mobile
+  static String get baseUrl {
+    // For web testing - use CORS proxy
+    if (kIsWeb) {
+      return 'https://cors-anywhere.herokuapp.com/https://keepsafe-backend.onrender.com';
+    }
+    // For mobile (Android/iOS) - use direct URL
+    return const String.fromEnvironment(
+      'API_BASE_URL',
+      defaultValue: 'https://keepsafe-backend.onrender.com',
+    );
+  }
+
+  static const int passwordMinLength = 8;
+  static const String emailRegex = r'^[\w\-\.]+@([\w\-]+)+\.[\w\-]{2,4}$';
 }
