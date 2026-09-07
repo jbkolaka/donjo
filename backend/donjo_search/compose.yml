@@ -1,0 +1,24 @@
+# donjo_search: its own Podman deployment. Talks to the shared Elasticsearch
+# (infra) and the shared RabbitMQ on the external `donjo-net` network.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Containerfile
+      target: prod
+    container_name: donjo_search
+    image: localhost/donjo_search:latest
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8084}:${PORT:-8084}"
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      PORT: ${PORT:-8084}
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    networks:
+      - donjo-net
+
+networks:
+  donjo-net:
+    external: true

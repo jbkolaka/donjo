@@ -1,0 +1,30 @@
+# donjo_payment: its own Podman deployment. Consumes from / publishes to the
+# shared RabbitMQ (infra) on the external `donjo-net` network.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Containerfile
+      target: prod
+    container_name: donjo_payment
+    image: localhost/donjo_payment:latest
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8083}:${PORT:-8083}"
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      PORT: ${PORT:-8083}
+      BLUEPRINT_DB_URL: ${BLUEPRINT_DB_URL:-./db/donjo_payment.db}
+      JWT_SECRET: ${JWT_SECRET:-35676ba264d618c86f8e950ecc33bb65658f423f01117ab63f3700d5bb9e6b35}
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    volumes:
+      - sqlite_bp:/app/db
+    networks:
+      - donjo-net
+
+volumes:
+  sqlite_bp:
+
+networks:
+  donjo-net:
+    external: true

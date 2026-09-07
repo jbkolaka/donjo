@@ -1,0 +1,30 @@
+# donjo_booking: its own Podman deployment. Consumes tickets from the shared
+# RabbitMQ (infra) on the external `donjo-net` network.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Containerfile
+      target: prod
+    container_name: donjo_booking
+    image: localhost/donjo_booking:latest
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8082}:${PORT:-8082}"
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      PORT: ${PORT:-8082}
+      BLUEPRINT_DB_URL: ${BLUEPRINT_DB_URL:-./db/donjo_booking.db}
+      JWT_SECRET: ${JWT_SECRET:-35676ba264d618c86f8e950ecc33bb65658f423f01117ab63f3700d5bb9e6b35}
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    volumes:
+      - sqlite_bp:/app/db
+    networks:
+      - donjo-net
+
+volumes:
+  sqlite_bp:
+
+networks:
+  donjo-net:
+    external: true

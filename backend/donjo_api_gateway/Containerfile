@@ -1,0 +1,20 @@
+# Podman Containerfile for donjo_api_gateway
+FROM golang:1.26-alpine AS build
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /app/donjo_gateway ./cmd/api
+
+FROM alpine:3.21 AS prod
+WORKDIR /app
+RUN apk add --no-cache ca-certificates tzdata
+
+COPY --from=build /app/donjo_gateway /app/donjo_gateway
+
+EXPOSE 8087
+CMD ["/app/donjo_gateway"]

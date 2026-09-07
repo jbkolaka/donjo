@@ -1,0 +1,34 @@
+# donjo_backend (auth): its own Podman deployment.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Containerfile
+    container_name: donjo_backend
+    image: localhost/donjo_backend:latest
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:${PORT:-8080}"
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      PORT: ${PORT:-8080}
+      BLUEPRINT_DB_URL: ${BLUEPRINT_DB_URL:-./db/donjo_backend.db}
+      JWT_SECRET: ${JWT_SECRET:-35676ba264d618c86f8e950ecc33bb65658f423f01117ab63f3700d5bb9e6b35}
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:-7327159b94650e734786083df41fd40c0765bdc238c688cad2ac27952281a222}
+      DATA_INDEX_KEY: ${DATA_INDEX_KEY:-a6227c183126e70f062aa0cc3b3925d2cc64ce79aac93119d9d76b3d9199f0ee}
+      UPLOAD_DIR: ${UPLOAD_DIR:-uploads}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    volumes:
+      - sqlite_bp:/app/db
+      - uploads:/app/uploads
+    networks:
+      - donjo-net
+
+volumes:
+  sqlite_bp:
+  uploads:
+
+networks:
+  donjo-net:
+    external: true

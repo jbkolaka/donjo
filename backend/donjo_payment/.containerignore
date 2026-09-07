@@ -1,0 +1,6 @@
+.git
+.gitignore
+*.log
+main
+donjo_payment
+*.db

@@ -1,0 +1,281 @@
+# Donjo Microservices Backend - Unified Podman Compose
+# Run entire fleet: podman compose up -d --build
+# Or run specific service: podman compose up -d <service_name>
+
+services:
+  # ---------------------------------------------------------------------------
+  # Shared Infrastructure
+  # ---------------------------------------------------------------------------
+  rabbitmq:
+    image: docker.io/library/rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - donjo-net
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.5
+    container_name: elasticsearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms256m -Xmx512m
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 45s
+    networks:
+      - donjo-net
+
+  # ---------------------------------------------------------------------------
+  # Microservices
+  # ---------------------------------------------------------------------------
+  donjo_backend:
+    build:
+      context: ./donjo_backend
+      dockerfile: Containerfile
+    container_name: donjo_backend
+    image: localhost/donjo_backend:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      APP_ENV: local
+      PORT: 8080
+      BLUEPRINT_DB_URL: ./db/donjo_backend.db
+      JWT_SECRET: 35676ba264d618c86f8e950ecc33bb65658f423f01117ab63f3700d5bb9e6b35
+      DATA_ENCRYPTION_KEY: 7327159b94650e734786083df41fd40c0765bdc238c688cad2ac27952281a222
+      DATA_INDEX_KEY: a6227c183126e70f062aa0cc3b3925d2cc64ce79aac93119d9d76b3d9199f0ee
+      UPLOAD_DIR: uploads
+      PUBLIC_BASE_URL: http://localhost:8080
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    volumes:
+      - auth_db:/app/db
+      - auth_uploads:/app/uploads
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - donjo-net
+
+  donjo_event:
+    build:
+      context: ./donjo_event
+      dockerfile: Containerfile
+      target: prod
+    container_name: donjo_event
+    image: localhost/donjo_event:latest
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      APP_ENV: local
+      PORT: 8081
+      BLUEPRINT_DB_URL: ./db/donjo_event.db
+      JWT_SECRET: 35676ba264d618c86f8e950ecc33bb65658f423f01117ab63f3700d5bb9e6b35
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    volumes:
+      - event_db:/app/db
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - donjo-net
+
+  donjo_booking:
+    build:
+      context: ./donjo_booking
+      dockerfile: Containerfile
+      target: prod
+    container_name: donjo_booking
+    image: localhost/donjo_booking:latest
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      APP_ENV: local
+      PORT: 8082
+      BLUEPRINT_DB_URL: ./db/donjo_booking.db
+      JWT_SECRET: 35676ba264d618c86f8e950ecc33bb65658f423f01117ab63f3700d5bb9e6b35
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    volumes:
+      - booking_db:/app/db
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - donjo-net
+
+  donjo_payment:
+    build:
+      context: ./donjo_payment
+      dockerfile: Containerfile
+      target: prod
+    container_name: donjo_payment
+    image: localhost/donjo_payment:latest
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    environment:
+      APP_ENV: local
+      PORT: 8083
+      BLUEPRINT_DB_URL: ./db/donjo_payment.db
+      JWT_SECRET: 35676ba264d618c86f8e950ecc33bb65658f423f01117ab63f3700d5bb9e6b35
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    volumes:
+      - payment_db:/app/db
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - donjo-net
+
+  donjo_search:
+    build:
+      context: ./donjo_search
+      dockerfile: Containerfile
+      target: prod
+    container_name: donjo_search
+    image: localhost/donjo_search:latest
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      APP_ENV: local
+      PORT: 8084
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - donjo-net
+
+  donjo_ml:
+    build:
+      context: ./donjo_ml
+      dockerfile: Containerfile
+      target: prod
+    container_name: donjo_ml
+    image: localhost/donjo_ml:latest
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      APP_ENV: local
+      PORT: 8085
+      BLUEPRINT_DB_URL: ./db/donjo_ml.db
+      JWT_SECRET: 35676ba264d618c86f8e950ecc33bb65658f423f01117ab63f3700d5bb9e6b35
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    volumes:
+      - ml_db:/app/db
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - donjo-net
+
+  donjo_notifications:
+    build:
+      context: ./donjo_notifications
+      dockerfile: Containerfile
+      target: prod
+    container_name: donjo_notifications
+    image: localhost/donjo_notifications:latest
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      APP_ENV: local
+      PORT: 8086
+      BLUEPRINT_DB_URL: ./db/donjo_notifications.db
+      JWT_SECRET: 35676ba264d618c86f8e950ecc33bb65658f423f01117ab63f3700d5bb9e6b35
+      SERVICE_TOKEN: donjo-internal-service-token
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    volumes:
+      - notifications_db:/app/db
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - donjo-net
+
+  donjo_gateway:
+    build:
+      context: ./donjo_api_gateway
+      dockerfile: Containerfile
+      target: prod
+    container_name: donjo_gateway
+    image: localhost/donjo_gateway:latest
+    restart: unless-stopped
+    ports:
+      - "8087:8087"
+    environment:
+      APP_ENV: local
+      PORT: 8087
+      AUTH_SERVICE_URL: http://donjo_backend:8080
+      EVENT_SERVICE_URL: http://donjo_event:8081
+      BOOKING_SERVICE_URL: http://donjo_booking:8082
+      PAYMENT_SERVICE_URL: http://donjo_payment:8083
+      SEARCH_SERVICE_URL: http://donjo_search:8084
+      ML_SERVICE_URL: http://donjo_ml:8085
+      NOTIFICATIONS_SERVICE_URL: http://donjo_notifications:8086
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
+      RATE_LIMIT_REQUESTS: 1000
+      MAX_BODY_BYTES: 20971520
+      HEALTH_TTL_SECONDS: 5
+    depends_on:
+      - donjo_backend
+      - donjo_event
+      - donjo_booking
+      - donjo_payment
+      - donjo_search
+      - donjo_ml
+      - donjo_notifications
+    networks:
+      - donjo-net
+
+networks:
+  donjo-net:
+    external: true
+
+volumes:
+  rabbitmq_data:
+  es_data:
+  auth_db:
+  auth_uploads:
+  event_db:
+  booking_db:
+  payment_db:
+  ml_db:
+  notifications_db:
