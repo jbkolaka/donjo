@@ -25,6 +25,13 @@ tmp/
 # .env file
 .env
 
+# Local SQLite databases (user/PII data plus rotation keys) never commit.
+db/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
 # Project build
 main
 *templ.go

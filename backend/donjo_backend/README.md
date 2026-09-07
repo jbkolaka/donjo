@@ -39,6 +39,26 @@ to write plaintext).
 - `PUBLIC_BASE_URL` is the public base URL used to build the served image URLs
   (default `http://localhost:8080`).
 
+Optional hardening configuration:
+
+```bash
+# TLS: both must be set to serve HTTPS; otherwise plain HTTP (dev).
+TLS_CERT_FILE=./certs/fullchain.pem
+TLS_KEY_FILE=./certs/privkey.pem
+
+# Per-IP rate limits (fixed 60s window).
+AUTH_RATE_LIMIT_REQUESTS=20    # register/login/refresh/password-reset group
+API_RATE_LIMIT_REQUESTS=300    # authenticated account endpoints
+
+# Request body cap in bytes (default 5 MiB, covers profile-image uploads).
+MAX_BODY_BYTES=5242880
+```
+
+All responses carry `X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy`, `Permissions-Policy`, and a `default-src 'none'`
+Content-Security-Policy; over TLS, `Strict-Transport-Security` is added.
+The SQLite database (`db/`) is gitignored.
+
 ## Profile Images
 
 Authenticated users can upload a profile picture. The bytes are stored only in

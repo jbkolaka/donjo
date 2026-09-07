@@ -1,7 +1,9 @@
 package server
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,6 +15,7 @@ import (
 	"donjo_backend/internal/auth"
 	"donjo_backend/internal/database"
 	"donjo_backend/internal/mailer"
+	"donjo_backend/internal/messaging"
 	"donjo_backend/internal/repository"
 )
 
@@ -24,6 +27,10 @@ type Server struct {
 	authMw     *auth.Middleware
 	userRepo   *repository.UserRepository
 	uploadsDir string
+
+	bus       *messaging.Client
+	busCtx    context.Context
+	busCancel context.CancelFunc
 }
 
 func NewServer() *http.Server {
@@ -64,6 +71,19 @@ func NewServer() *http.Server {
 	}
 	NewServer.authH = auth.NewHandler(authSvc, uploadsDir, publicBase)
 	NewServer.authMw = auth.NewMiddleware(tokens)
+
+	// RabbitMQ: listen for events published by the event service so user
+	// stats (events_created, tickets_sold, total_earned, wallet_balance,
+	// venues_listed) stay in sync. Non-blocking; degrades gracefully.
+	NewServer.busCtx, NewServer.busCancel = context.WithCancel(context.Background())
+	NewServer.bus = messaging.NewClient()
+	go func() {
+		if err := NewServer.bus.Connect(); err != nil {
+			log.Printf("warning: running without RabbitMQ (%v)", err)
+			return
+		}
+		messaging.NewConsumer(NewServer.busCtx, NewServer.bus, NewServer.userRepo).Start()
+	}()
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", NewServer.port),
