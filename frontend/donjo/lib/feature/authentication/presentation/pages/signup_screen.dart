@@ -2,17 +2,22 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:donjo/core/grid/app_grid.dart';
+import 'package:donjo/core/motion/app_motion.dart';
 import 'package:donjo/core/theme/app_palette.dart';
 import 'package:donjo/core/theme/spacing/app_spacing.dart';
 import 'package:donjo/core/theme/theme.dart';
 import 'package:donjo/feature/authentication/data/model/auth_models.dart';
 import 'package:donjo/feature/authentication/presentation/bloc/auth_bloc.dart';
-import 'package:donjo/feature/authentication/presentation/widgets/auth_text_field.dart';
 import 'package:donjo/feature/authentication/presentation/widgets/auth_widget.dart';
 import 'package:donjo/feature/authentication/presentation/widgets/carbon_grid_background.dart';
 import 'package:donjo/feature/authentication/presentation/widgets/donjo_brand_mark.dart';
-import 'package:donjo/feature/authentication/presentation/widgets/fade_slide_in.dart';
+import 'package:donjo/feature/authentication/presentation/widgets/signup_steps/signup_steps.dart';
 
+/// Instagram-style step-by-step multi-page registration wizard.
+///
+/// Each input field lives on its own dedicated screen with smooth expressive
+/// slide animations, progress tracking, and IBM Carbon 2x Grid layout alignment.
 class SignUpScreen extends StatefulWidget {
   static Route<dynamic> route() {
     return MaterialPageRoute(builder: (context) => const SignUpScreen());
@@ -25,6 +30,10 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  static const int _totalSteps = 6;
+  int _currentStep = 0;
+  final PageController _pageController = PageController();
+
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -32,6 +41,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _dobController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  final FocusNode _fullNameFocus = FocusNode();
   final FocusNode _usernameFocus = FocusNode();
   final FocusNode _emailFocus = FocusNode();
   final FocusNode _phoneFocus = FocusNode();
@@ -46,7 +56,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _agreedToTerms = true;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _fullNameFocus.requestFocus();
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _pageController.dispose();
     _fullNameController.dispose();
     _usernameController.dispose();
     _emailController.dispose();
@@ -54,6 +75,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _dobController.dispose();
     _passwordController.dispose();
 
+    _fullNameFocus.dispose();
     _usernameFocus.dispose();
     _emailFocus.dispose();
     _phoneFocus.dispose();
@@ -61,433 +83,455 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
+  void _focusCurrentStep() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      switch (_currentStep) {
+        case 0:
+          _fullNameFocus.requestFocus();
+          break;
+        case 1:
+          _usernameFocus.requestFocus();
+          break;
+        case 2:
+          _emailFocus.requestFocus();
+          break;
+        case 3:
+          _phoneFocus.requestFocus();
+          break;
+        case 4:
+          FocusScope.of(context).unfocus();
+          break;
+        case 5:
+          _passwordFocus.requestFocus();
+          break;
+      }
+    });
+  }
+
+  void _goToStep(int step) {
+    if (step < 0 || step >= _totalSteps) return;
+    setState(() => _currentStep = step);
+    _pageController.animateToPage(
+      step,
+      duration: AppMotion.durationModerate02,
+      curve: AppMotion.easeExpressiveStandard,
+    );
+    _focusCurrentStep();
+  }
+
+  bool _validateCurrentStep() {
+    switch (_currentStep) {
+      case 0: // Full name
+        final name = _fullNameController.text.trim();
+        if (name.isEmpty) {
+          setState(() => _fullNameError = 'Enter your full name');
+          return false;
+        }
+        if (name.length < 2) {
+          setState(
+            () => _fullNameError = 'Full name must be at least 2 characters',
+          );
+          return false;
+        }
+        setState(() => _fullNameError = null);
+        return true;
+
+      case 1: // Username
+        final username = _usernameController.text.trim();
+        if (username.isEmpty) {
+          setState(() => _usernameError = 'Enter a username');
+          return false;
+        }
+        if (username.length < 3) {
+          setState(
+            () => _usernameError = 'Username must be at least 3 characters',
+          );
+          return false;
+        }
+        if (!RegExp(r'^[a-zA-Z0-9._]+$').hasMatch(username)) {
+          setState(
+            () => _usernameError =
+                'Username can only contain letters, numbers, dots, and underscores',
+          );
+          return false;
+        }
+        setState(() => _usernameError = null);
+        return true;
+
+      case 2: // Email
+        final email = _emailController.text.trim();
+        if (email.isEmpty) {
+          setState(() => _emailError = 'Enter your email address');
+          return false;
+        }
+        if (!RegExp(r'^[\w\.-]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+          setState(() => _emailError = 'Enter a valid email address');
+          return false;
+        }
+        setState(() => _emailError = null);
+        return true;
+
+      case 3: // Phone number
+        final phone = _phoneController.text.trim();
+        if (phone.isEmpty) {
+          setState(() => _phoneError = 'Enter your phone number');
+          return false;
+        }
+        final cleanPhone = phone.replaceAll(RegExp(r'[\s-]'), '');
+        if (!RegExp(r'^\+?[0-9]{9,15}$').hasMatch(cleanPhone)) {
+          setState(
+            () =>
+                _phoneError = 'Enter a valid phone number (e.g. +254712345678)',
+          );
+          return false;
+        }
+        setState(() => _phoneError = null);
+        return true;
+
+      case 4: // Date of birth
+        final dob = _dobController.text.trim();
+        if (dob.isEmpty) {
+          setState(() => _dobError = 'Please select your date of birth');
+          return false;
+        }
+        try {
+          final parsed = DateTime.parse(dob);
+          final now = DateTime.now();
+          final age =
+              now.year -
+              parsed.year -
+              ((now.month > parsed.month ||
+                      (now.month == parsed.month && now.day >= parsed.day))
+                  ? 0
+                  : 1);
+          if (age < 13) {
+            setState(() => _dobError = 'You must be at least 13 years old');
+            return false;
+          }
+        } catch (_) {
+          setState(() => _dobError = 'Invalid date format (YYYY-MM-DD)');
+          return false;
+        }
+        setState(() => _dobError = null);
+        return true;
+
+      case 5: // Password
+        final password = _passwordController.text;
+        if (password.isEmpty) {
+          setState(() => _passwordError = 'Enter a password');
+          return false;
+        }
+        if (password.length < 8) {
+          setState(
+            () => _passwordError = 'Password must be at least 8 characters',
+          );
+          return false;
+        }
+        setState(() => _passwordError = null);
+        return true;
+
+      default:
+        return true;
+    }
+  }
+
+  void _nextStep() {
+    if (!_validateCurrentStep()) return;
+    if (_currentStep < _totalSteps - 1) {
+      _goToStep(_currentStep + 1);
+    } else {
+      _submit();
+    }
+  }
+
+  void _prevStep() {
+    if (_currentStep > 0) {
+      _goToStep(_currentStep - 1);
+    } else {
+      Navigator.of(context).maybePop();
+    }
+  }
+
   Future<void> _pickDateOfBirth() async {
     final now = DateTime.now();
-    final initialDate = DateTime(now.year - 20, now.month, now.day);
-    final firstDate = DateTime(now.year - 100);
-    final lastDate = DateTime(now.year - 13); // Backend requires 13+
+    final initialDate = DateTime(now.year - 18, now.month, now.day);
+    final firstDate = DateTime(1920);
+    final lastDate = DateTime(now.year - 13, now.month, now.day);
 
     final picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: firstDate,
       lastDate: lastDate,
-      builder: (context, child) {
-        final p = context.palette;
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.dark(
-              primary: p.buttonPrimary,
-              onPrimary: const Color(0xFF161616),
-              surface: p.surface,
-              onSurface: p.textPrimary,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      helpText: 'SELECT YOUR DATE OF BIRTH',
+      cancelText: 'CANCEL',
+      confirmText: 'SELECT',
     );
 
     if (picked != null) {
-      final formatted =
-          '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      final y = picked.year.toString().padLeft(4, '0');
+      final m = picked.month.toString().padLeft(2, '0');
+      final d = picked.day.toString().padLeft(2, '0');
       setState(() {
-        _dobController.text = formatted;
+        _dobController.text = '$y-$m-$d';
         _dobError = null;
       });
     }
   }
 
-  bool _validate() {
-    final fullName = _fullNameController.text.trim();
-    final username = _usernameController.text.trim();
-    final email = _emailController.text.trim();
-    final phone = _phoneController.text.trim();
-    final dob = _dobController.text.trim();
-    final password = _passwordController.text;
-
-    setState(() {
-      _fullNameError = fullName.isEmpty ? 'Enter your full name' : null;
-
-      if (username.isEmpty) {
-        _usernameError = 'Enter a username';
-      } else if (username.length < 3) {
-        _usernameError = 'Username must be at least 3 characters';
-      } else {
-        _usernameError = null;
-      }
-
-      if (email.isEmpty) {
-        _emailError = 'Enter your email address';
-      } else if (!RegExp(r'^[\w\.-]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
-        _emailError = 'Enter a valid email address';
-      } else {
-        _emailError = null;
-      }
-
-      _phoneError = phone.isEmpty ? 'Enter your phone number' : null;
-      _dobError = dob.isEmpty ? 'Select your date of birth' : null;
-
-      if (password.isEmpty) {
-        _passwordError = 'Enter a password';
-      } else if (password.length < 8) {
-        _passwordError = 'Password must be at least 8 characters';
-      } else {
-        _passwordError = null;
-      }
-    });
-
-    return _fullNameError == null &&
-        _usernameError == null &&
-        _emailError == null &&
-        _phoneError == null &&
-        _dobError == null &&
-        _passwordError == null;
-  }
-
   void _submit() {
-    if (!_validate()) return;
+    if (!_validateCurrentStep()) return;
+    if (!_agreedToTerms) return;
 
     final request = CreateUserRequest(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
       fullName: _fullNameController.text.trim(),
       username: _usernameController.text.trim(),
-      email: _emailController.text.trim(),
-      phoneNumber: _phoneController.text.trim(),
       dateOfBirth: _dobController.text.trim(),
-      password: _passwordController.text,
+      phoneNumber: _phoneController.text.trim(),
     );
 
     context.read<AuthBloc>().add(AuthSignUpRequested(request: request));
   }
 
+  void _handleServerError(AuthState state) {
+    if (state.fieldErrors.containsKey('full_name') && _currentStep != 0) {
+      _goToStep(0);
+    } else if (state.fieldErrors.containsKey('username') && _currentStep != 1) {
+      _goToStep(1);
+    } else if (state.fieldErrors.containsKey('email') && _currentStep != 2) {
+      _goToStep(2);
+    } else if (state.fieldErrors.containsKey('phone_number') &&
+        _currentStep != 3) {
+      _goToStep(3);
+    } else if (state.fieldErrors.containsKey('date_of_birth') &&
+        _currentStep != 4) {
+      _goToStep(4);
+    } else if (state.fieldErrors.containsKey('password') && _currentStep != 5) {
+      _goToStep(5);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final progress = (_currentStep + 1) / _totalSteps;
 
-    return BlocConsumer<AuthBloc, AuthState>(
-      listener: (context, state) {
-        if (state.isAuthenticated) {
-          if (Navigator.of(context).canPop()) {
-            Navigator.of(context).pop();
-          }
+    return PopScope(
+      canPop: _currentStep == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _prevStep();
         }
       },
-      builder: (context, state) {
-        final error = state.error;
-        final showBanner = error != null && state.fieldErrors.isEmpty;
+      child: BlocConsumer<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state.status == AuthStatus.authenticated) {
+            Navigator.of(context).pop();
+          } else if (state.status == AuthStatus.failure) {
+            _handleServerError(state);
+          }
+        },
+        builder: (context, state) {
+          final error = state.error;
+          final showBanner = error != null && state.fieldErrors.isEmpty;
 
-        return Scaffold(
-          backgroundColor: p.background,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back_rounded, color: p.textPrimary),
-              onPressed: () => Navigator.of(context).maybePop(),
-            ),
-            actions: [
-              IconButton(
-                tooltip: 'Toggle Theme',
-                icon: Icon(
-                  p.isDark
-                      ? Icons.light_mode_outlined
-                      : Icons.dark_mode_outlined,
-                  color: p.textSecondary,
-                  size: 20,
-                ),
-                onPressed: () => context.read<ThemeCubit>().toggleTheme(),
+          return Scaffold(
+            backgroundColor: p.background,
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back_rounded, color: p.textPrimary),
+                tooltip: _currentStep > 0 ? 'Previous step' : 'Back',
+                onPressed: _prevStep,
               ),
-              const SizedBox(width: AppSpacing.spacing02),
-            ],
-          ),
-          body: CarbonGridBackground(
-            child: DonjoPage(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: FadeSlideIn.staggered([
-                  // 1. Header Lockup
-                  Row(
-                    children: [
-                      const DonjoBrandMark(size: 32),
-                      const SizedBox(width: AppSpacing.spacing03),
-                      Text(
-                        'Donjo',
-                        style: context.appText.titleMedium.copyWith(
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.spacing07),
-
-                  // 2. Eyebrow & Headline
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: DonjoEyebrow('Registration'),
-                  ),
-                  const SizedBox(height: AppSpacing.spacing03),
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const DonjoBrandMark(size: 24),
+                  const SizedBox(width: AppSpacing.spacing02),
                   Text(
-                    'Create your\naccount.',
-                    style: context.appText.headlineLarge.copyWith(
-                      height: 1.15,
-                      fontWeight: FontWeight.w300,
-                      letterSpacing: -0.8,
+                    'Donjo',
+                    style: context.appText.titleSmall.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.spacing03),
-                  Text(
-                    'Join the platform to access events, ticketing and secure donations.',
-                    style: context.appText.bodySmall.copyWith(
-                      color: p.textSecondary,
-                    ),
+                ],
+              ),
+              centerTitle: true,
+              actions: [
+                IconButton(
+                  tooltip: 'Toggle Theme',
+                  icon: Icon(
+                    p.isDark
+                        ? Icons.light_mode_outlined
+                        : Icons.dark_mode_outlined,
+                    color: p.textSecondary,
+                    size: 20,
                   ),
-                  const SizedBox(height: AppSpacing.spacing07),
-
-                  // 3. Error Banner (if any)
-                  if (showBanner) ...[
-                    DonjoErrorBanner(
-                      message: error.message,
-                      title: 'Registration Error',
-                      onClose: () => context.read<AuthBloc>().add(
-                        const AuthErrorCleared(),
+                  onPressed: () => context.read<ThemeCubit>().toggleTheme(),
+                ),
+                const SizedBox(width: AppSpacing.spacing02),
+              ],
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(4),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0.0, end: progress),
+                  duration: AppMotion.durationModerate02,
+                  curve: AppMotion.easeProductiveEntrance,
+                  builder: (context, value, child) {
+                    return LinearProgressIndicator(
+                      value: value,
+                      backgroundColor: p.borderSubtle.withValues(alpha: 0.3),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        p.buttonPrimary,
                       ),
+                      minHeight: 3,
+                    );
+                  },
+                ),
+              ),
+            ),
+            body: CarbonGridBackground(
+              child: SafeArea(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: AppGrid.maxFormWidth,
                     ),
-                    const SizedBox(height: AppSpacing.spacing05),
-                  ],
-
-                  // 4. Form Fields
-                  AuthTextField(
-                    controller: _fullNameController,
-                    label: 'Full name',
-                    hint: 'Jane Doe',
-                    isRequired: true,
-                    errorText: _fullNameError ?? state.fieldErrors['full_name'],
-                    prefixIcon: Icon(
-                      Icons.person_outline_rounded,
-                      size: 18,
-                      color: p.textSecondary,
-                    ),
-                    textInputAction: TextInputAction.next,
-                    autofillHints: const [AutofillHints.name],
-                    enabled: !state.busy,
-                    onSubmitted: (_) => _usernameFocus.requestFocus(),
-                    onChanged: (_) {
-                      if (_fullNameError != null) {
-                        setState(() => _fullNameError = null);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.fieldGap + 4),
-
-                  AuthTextField(
-                    controller: _usernameController,
-                    focusNode: _usernameFocus,
-                    label: 'Username',
-                    hint: 'janedoe',
-                    isRequired: true,
-                    errorText: _usernameError ?? state.fieldErrors['username'],
-                    prefixIcon: Icon(
-                      Icons.alternate_email_rounded,
-                      size: 18,
-                      color: p.textSecondary,
-                    ),
-                    textInputAction: TextInputAction.next,
-                    autofillHints: const [AutofillHints.username],
-                    enabled: !state.busy,
-                    onSubmitted: (_) => _emailFocus.requestFocus(),
-                    onChanged: (_) {
-                      if (_usernameError != null) {
-                        setState(() => _usernameError = null);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.fieldGap + 4),
-
-                  AuthTextField(
-                    controller: _emailController,
-                    focusNode: _emailFocus,
-                    label: 'Email address',
-                    hint: 'jane@example.com',
-                    isRequired: true,
-                    errorText: _emailError ?? state.fieldErrors['email'],
-                    prefixIcon: Icon(
-                      Icons.mail_outline_rounded,
-                      size: 18,
-                      color: p.textSecondary,
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    autofillHints: const [AutofillHints.email],
-                    enabled: !state.busy,
-                    onSubmitted: (_) => _phoneFocus.requestFocus(),
-                    onChanged: (_) {
-                      if (_emailError != null) {
-                        setState(() => _emailError = null);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.fieldGap + 4),
-
-                  AuthTextField(
-                    controller: _phoneController,
-                    focusNode: _phoneFocus,
-                    label: 'Phone number',
-                    hint: '+254712345678',
-                    isRequired: true,
-                    errorText: _phoneError ?? state.fieldErrors['phone_number'],
-                    prefixIcon: Icon(
-                      Icons.phone_outlined,
-                      size: 18,
-                      color: p.textSecondary,
-                    ),
-                    keyboardType: TextInputType.phone,
-                    textInputAction: TextInputAction.next,
-                    autofillHints: const [AutofillHints.telephoneNumber],
-                    enabled: !state.busy,
-                    onSubmitted: (_) => _pickDateOfBirth(),
-                    onChanged: (_) {
-                      if (_phoneError != null) {
-                        setState(() => _phoneError = null);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.fieldGap + 4),
-
-                  // Date of Birth Field with tap trigger
-                  GestureDetector(
-                    onTap: state.busy ? null : _pickDateOfBirth,
-                    child: AbsorbPointer(
-                      child: AuthTextField(
-                        controller: _dobController,
-                        label: 'Date of birth',
-                        hint: 'YYYY-MM-DD',
-                        isRequired: true,
-                        helper: 'Must be at least 13 years old',
-                        errorText:
-                            _dobError ?? state.fieldErrors['date_of_birth'],
-                        prefixIcon: Icon(
-                          Icons.calendar_today_outlined,
-                          size: 18,
-                          color: p.textSecondary,
-                        ),
-                        suffixIcon: Icon(
-                          Icons.arrow_drop_down_rounded,
-                          color: p.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.fieldGap + 4),
-
-                  AuthTextField(
-                    controller: _passwordController,
-                    focusNode: _passwordFocus,
-                    label: 'Password',
-                    hint: 'Minimum 8 characters',
-                    isRequired: true,
-                    errorText: _passwordError ?? state.fieldErrors['password'],
-                    obscure: true,
-                    prefixIcon: Icon(
-                      Icons.lock_outline_rounded,
-                      size: 18,
-                      color: p.textSecondary,
-                    ),
-                    textInputAction: TextInputAction.done,
-                    autofillHints: const [AutofillHints.newPassword],
-                    enabled: !state.busy,
-                    onSubmitted: (_) => _submit(),
-                    onChanged: (_) {
-                      setState(() {
-                        if (_passwordError != null) _passwordError = null;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.spacing03),
-
-                  // 5. Password Strength Meter
-                  PasswordStrengthMeter(password: _passwordController.text),
-                  const SizedBox(height: AppSpacing.spacing06),
-
-                  // 6. Terms of service checkbox
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: Checkbox(
-                          value: _agreedToTerms,
-                          activeColor: p.buttonPrimary,
-                          checkColor: const Color(0xFF161616),
-                          side: BorderSide(color: p.border, width: 1.5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          onChanged: state.busy
-                              ? null
-                              : (v) =>
-                                    setState(() => _agreedToTerms = v ?? false),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.spacing03),
-                      Expanded(
-                        child: Text(
-                          'I agree to the Terms of Service and Privacy Policy.',
-                          style: context.appText.bodySmall.copyWith(
-                            color: p.textSecondary,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.spacing07),
-
-                  // 7. Submit CTA
-                  DonjoPrimaryButton(
-                    label: 'Create account',
-                    loading: state.busy,
-                    onPressed: state.busy || !_agreedToTerms ? null : _submit,
-                  ),
-                  const SizedBox(height: AppSpacing.spacing06),
-
-                  // 8. Sign In Link Footer
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Already have an account? ',
-                        style: context.appText.bodySmall.copyWith(
-                          color: p.textSecondary,
-                        ),
-                      ),
-                      InkWell(
-                        onTap: () => Navigator.of(context).maybePop(),
-                        borderRadius: BorderRadius.circular(AppRadius.field),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 2,
-                          ),
-                          child: Text(
-                            'Sign in',
-                            style: context.appText.labelMedium.copyWith(
-                              color: p.link,
-                              fontWeight: FontWeight.w700,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // General Error Banner
+                        if (showBanner) ...[
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.screenGutter,
+                              vertical: AppSpacing.spacing03,
+                            ),
+                            child: DonjoErrorBanner(
+                              message: error.message,
+                              title: 'Registration Error',
+                              onClose: () => context.read<AuthBloc>().add(
+                                const AuthErrorCleared(),
+                              ),
                             ),
                           ),
+                        ],
+
+                        // Step Page View
+                        Expanded(
+                          child: PageView(
+                            controller: _pageController,
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: [
+                              SignUpNameStep(
+                                controller: _fullNameController,
+                                focusNode: _fullNameFocus,
+                                errorText:
+                                    _fullNameError ??
+                                    state.fieldErrors['full_name'],
+                                busy: state.busy,
+                                onSubmitted: _nextStep,
+                                onChanged: (_) {
+                                  if (_fullNameError != null) {
+                                    setState(() => _fullNameError = null);
+                                  }
+                                },
+                              ),
+                              SignUpUsernameStep(
+                                controller: _usernameController,
+                                focusNode: _usernameFocus,
+                                errorText:
+                                    _usernameError ??
+                                    state.fieldErrors['username'],
+                                busy: state.busy,
+                                onSubmitted: _nextStep,
+                                onChanged: (_) {
+                                  if (_usernameError != null) {
+                                    setState(() => _usernameError = null);
+                                  }
+                                },
+                              ),
+                              SignUpEmailStep(
+                                controller: _emailController,
+                                focusNode: _emailFocus,
+                                errorText:
+                                    _emailError ?? state.fieldErrors['email'],
+                                busy: state.busy,
+                                onSubmitted: _nextStep,
+                                onChanged: (_) {
+                                  if (_emailError != null) {
+                                    setState(() => _emailError = null);
+                                  }
+                                },
+                              ),
+                              SignUpPhoneStep(
+                                controller: _phoneController,
+                                focusNode: _phoneFocus,
+                                errorText:
+                                    _phoneError ??
+                                    state.fieldErrors['phone_number'],
+                                busy: state.busy,
+                                onSubmitted: _nextStep,
+                                onChanged: (_) {
+                                  if (_phoneError != null) {
+                                    setState(() => _phoneError = null);
+                                  }
+                                },
+                              ),
+                              SignUpDobStep(
+                                dobText: _dobController.text,
+                                errorText:
+                                    _dobError ??
+                                    state.fieldErrors['date_of_birth'],
+                                busy: state.busy,
+                                onTapPicker: _pickDateOfBirth,
+                              ),
+                              SignUpPasswordStep(
+                                controller: _passwordController,
+                                focusNode: _passwordFocus,
+                                errorText:
+                                    _passwordError ??
+                                    state.fieldErrors['password'],
+                                agreedToTerms: _agreedToTerms,
+                                busy: state.busy,
+                                onSubmitted: _submit,
+                                onChanged: (_) {
+                                  if (_passwordError != null) {
+                                    setState(() => _passwordError = null);
+                                  }
+                                },
+                                onToggleTerms: (v) =>
+                                    setState(() => _agreedToTerms = v ?? false),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+
+                        // Bottom Navigation Footer
+                        SignUpBottomBar(
+                          currentStep: _currentStep,
+                          totalSteps: _totalSteps,
+                          busy: state.busy,
+                          canProceed:
+                              _currentStep != _totalSteps - 1 || _agreedToTerms,
+                          onNext: _nextStep,
+                          onSignInTap: () => Navigator.of(context).maybePop(),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: AppSpacing.spacing08),
-                ]),
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

@@ -101,62 +101,51 @@ class DonjoPrimaryButton extends StatelessWidget {
       ),
     );
 
-    return expand ? SizedBox(width: double.infinity, child: button) : button;
+    if (expand) return SizedBox(width: double.infinity, child: button);
+    return button;
   }
 }
 
-/// IBM Carbon secondary / ghost button.
+/// Carbon Design System ghost (text/outline) button.
 class DonjoGhostButton extends StatelessWidget {
   const DonjoGhostButton({
     super.key,
     required this.label,
     this.onPressed,
-    this.expand = true,
     this.icon,
   });
 
   final String label;
   final VoidCallback? onPressed;
-  final bool expand;
   final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final enabled = onPressed != null;
-
-    final button = Material(
+    return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(AppRadius.button),
       child: InkWell(
-        onTap: enabled ? onPressed : null,
+        onTap: onPressed,
         borderRadius: BorderRadius.circular(AppRadius.button),
-        splashColor: p.link.withValues(alpha: 0.08),
-        highlightColor: p.link.withValues(alpha: 0.04),
         child: Container(
           constraints: const BoxConstraints(minHeight: AppSizes.control),
           padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.spacing06,
-            vertical: AppSpacing.spacing04,
+            horizontal: AppSpacing.spacing05,
+            vertical: AppSpacing.spacing03,
           ),
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            border: Border.all(color: p.border, width: AppSizes.hairline),
-            borderRadius: BorderRadius.circular(AppRadius.button),
-          ),
           child: Row(
-            mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 18, color: p.textPrimary),
-                const SizedBox(width: AppSpacing.spacing03),
+                Icon(icon, size: 16, color: p.link),
+                const SizedBox(width: AppSpacing.spacing02),
               ],
               Text(
                 label,
-                textAlign: TextAlign.center,
-                style: context.appText.button.copyWith(
-                  color: p.textPrimary,
+                style: context.appText.labelMedium.copyWith(
+                  color: p.link,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -165,17 +154,14 @@ class DonjoGhostButton extends StatelessWidget {
         ),
       ),
     );
-
-    return expand ? SizedBox(width: double.infinity, child: button) : button;
   }
 }
 
-/// Carbon-styled Eyebrow badge tag.
+/// Carbon Design System high-contrast section / step eyebrow badge.
 class DonjoEyebrow extends StatelessWidget {
-  const DonjoEyebrow(this.label, {super.key, this.icon});
+  const DonjoEyebrow(this.label, {super.key});
 
   final String label;
-  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -183,13 +169,13 @@ class DonjoEyebrow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.spacing03,
-        vertical: AppSpacing.spacing02,
+        vertical: AppSpacing.spacing01 + 2,
       ),
       decoration: BoxDecoration(
-        color: p.accent.withValues(alpha: 0.12),
+        color: p.buttonPrimary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppRadius.pill),
         border: Border.all(
-          color: p.accent.withValues(alpha: 0.25),
+          color: p.buttonPrimary.withValues(alpha: 0.35),
           width: AppSizes.hairline,
         ),
       ),
@@ -236,62 +222,80 @@ class DonjoErrorBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.spacing04,
-        vertical: AppSpacing.spacing04,
-      ),
-      decoration: BoxDecoration(
-        color: p.error.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppRadius.field),
-        border: Border(
-          left: BorderSide(color: p.error, width: 3.5),
-          top: BorderSide(color: p.error.withValues(alpha: 0.2)),
-          right: BorderSide(color: p.error.withValues(alpha: 0.2)),
-          bottom: BorderSide(color: p.error.withValues(alpha: 0.2)),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.field),
+      child: Container(
+        decoration: BoxDecoration(
+          color: p.error.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppRadius.field),
+          border: Border.all(
+            color: p.error.withValues(alpha: 0.3),
+            width: AppSizes.hairline,
+          ),
         ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.error_outline_rounded, size: 20, color: p.error),
-          const SizedBox(width: AppSpacing.spacing03),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (title != null) ...[
-                  Text(
-                    title!,
-                    style: context.appText.labelLarge.copyWith(
-                      color: p.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Left Carbon Accent Strip
+              Container(width: 3.5, color: p.error),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.spacing04,
+                    vertical: AppSpacing.spacing04,
                   ),
-                  const SizedBox(height: 2),
-                ],
-                Text(
-                  message,
-                  style: context.appText.bodySm.copyWith(
-                    color: p.textPrimary,
-                    height: 1.35,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 20,
+                        color: p.error,
+                      ),
+                      const SizedBox(width: AppSpacing.spacing03),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (title != null) ...[
+                              Text(
+                                title!,
+                                style: context.appText.labelLarge.copyWith(
+                                  color: p.textPrimary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                            ],
+                            Text(
+                              message,
+                              style: context.appText.bodySmall.copyWith(
+                                color: p.textPrimary,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (onClose != null) ...[
+                        const SizedBox(width: AppSpacing.spacing02),
+                        GestureDetector(
+                          onTap: onClose,
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 16,
+                            color: p.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          if (onClose != null) ...[
-            const SizedBox(width: AppSpacing.spacing02),
-            GestureDetector(
-              onTap: onClose,
-              child: Icon(
-                Icons.close_rounded,
-                size: 16,
-                color: p.textSecondary,
               ),
-            ),
-          ],
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -307,51 +311,69 @@ class DonjoSuccessBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.spacing04,
-        vertical: AppSpacing.spacing04,
-      ),
-      decoration: BoxDecoration(
-        color: p.success.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppRadius.field),
-        border: Border(
-          left: BorderSide(color: p.success, width: 3.5),
-          top: BorderSide(color: p.success.withValues(alpha: 0.2)),
-          right: BorderSide(color: p.success.withValues(alpha: 0.2)),
-          bottom: BorderSide(color: p.success.withValues(alpha: 0.2)),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.field),
+      child: Container(
+        decoration: BoxDecoration(
+          color: p.success.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppRadius.field),
+          border: Border.all(
+            color: p.success.withValues(alpha: 0.3),
+            width: AppSizes.hairline,
+          ),
         ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.check_circle_outline_rounded, size: 20, color: p.success),
-          const SizedBox(width: AppSpacing.spacing03),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (title != null) ...[
-                  Text(
-                    title!,
-                    style: context.appText.labelLarge.copyWith(
-                      color: p.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Left Carbon Accent Strip
+              Container(width: 3.5, color: p.success),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.spacing04,
+                    vertical: AppSpacing.spacing04,
                   ),
-                  const SizedBox(height: 2),
-                ],
-                Text(
-                  message,
-                  style: context.appText.bodySm.copyWith(
-                    color: p.textPrimary,
-                    height: 1.35,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline_rounded,
+                        size: 20,
+                        color: p.success,
+                      ),
+                      const SizedBox(width: AppSpacing.spacing03),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (title != null) ...[
+                              Text(
+                                title!,
+                                style: context.appText.labelLarge.copyWith(
+                                  color: p.textPrimary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                            ],
+                            Text(
+                              message,
+                              style: context.appText.bodySmall.copyWith(
+                                color: p.textPrimary,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
