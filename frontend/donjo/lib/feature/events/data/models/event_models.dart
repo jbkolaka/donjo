@@ -651,6 +651,344 @@ class Ticket {
   };
 }
 
+/// Request body for POST /api/v1/events (and reused for PUT /:id as an
+/// incremental update — null fields are omitted).
+///
+/// The backend binds `models.Event` directly; identity, slug, counters and
+/// timestamps are assigned server-side and are therefore not client fields.
+class EventDraft {
+  const EventDraft({
+    required this.title,
+    required this.category,
+    required this.startTime,
+    required this.endTime,
+    required this.totalCapacity,
+    this.description,
+    this.shortDescription,
+    this.subCategory,
+    this.tags = const [],
+    this.eventType = EventType.inPerson,
+    this.isVirtual = false,
+    this.virtualLink,
+    this.virtualPlatform,
+    this.venueId,
+    this.location,
+    this.address,
+    this.city,
+    this.county,
+    this.country = 'Kenya',
+    this.coordinates,
+    this.timezone = 'Africa/Nairobi',
+    this.setupTime,
+    this.teardownTime,
+    this.minTicketPrice,
+    this.maxTicketPrice,
+    this.isFree = false,
+    this.ticketSalesStart,
+    this.ticketSalesEnd,
+    this.ticketTransferAllowed = true,
+    this.refundDeadline,
+    this.isPrivate = false,
+    this.inviteOnly = false,
+    this.eventPassword,
+    this.bannerImage,
+    this.galleryImages = const [],
+    this.videoUrl,
+    this.organizerName,
+    this.organizerEmail,
+    this.organizerPhone,
+    this.allowWaitlist = true,
+    this.requiresAgeVerification = false,
+    this.minimumAge,
+  });
+
+  final String title;
+  final String category;
+  final DateTime startTime;
+  final DateTime endTime;
+  final int totalCapacity;
+  final String? description;
+  final String? shortDescription;
+  final String? subCategory;
+  final List<String> tags;
+  final String eventType;
+  final bool isVirtual;
+  final String? virtualLink;
+  final String? virtualPlatform;
+  final String? venueId;
+  final String? location;
+  final String? address;
+  final String? city;
+  final String? county;
+  final String country;
+  final Coordinates? coordinates;
+  final String timezone;
+  final DateTime? setupTime;
+  final DateTime? teardownTime;
+  final double? minTicketPrice;
+  final double? maxTicketPrice;
+  final bool isFree;
+  final DateTime? ticketSalesStart;
+  final DateTime? ticketSalesEnd;
+  final bool ticketTransferAllowed;
+  final DateTime? refundDeadline;
+  final bool isPrivate;
+  final bool inviteOnly;
+  final String? eventPassword;
+  final String? bannerImage;
+  final List<String> galleryImages;
+  final String? videoUrl;
+  final String? organizerName;
+  final String? organizerEmail;
+  final String? organizerPhone;
+  final bool allowWaitlist;
+  final bool requiresAgeVerification;
+  final int? minimumAge;
+
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        'category': category,
+        'start_time': startTime.toIso8601String(),
+        'end_time': endTime.toIso8601String(),
+        'total_capacity': totalCapacity,
+        if (description != null) 'description': description,
+        if (shortDescription != null) 'short_description': shortDescription,
+        if (subCategory != null) 'sub_category': subCategory,
+        if (tags.isNotEmpty) 'tags': tags,
+        'event_type': eventType,
+        'is_virtual': isVirtual,
+        if (virtualLink != null) 'virtual_link': virtualLink,
+        if (virtualPlatform != null) 'virtual_platform': virtualPlatform,
+        if (venueId != null) 'venue_id': venueId,
+        if (location != null) 'location': location,
+        if (address != null) 'address': address,
+        if (city != null) 'city': city,
+        if (county != null) 'county': county,
+        'country': country,
+        if (coordinates != null) 'coordinates': coordinates!.toJson(),
+        'timezone': timezone,
+        if (setupTime != null) 'setup_time': setupTime!.toIso8601String(),
+        if (teardownTime != null)
+          'teardown_time': teardownTime!.toIso8601String(),
+        if (minTicketPrice != null) 'min_ticket_price': minTicketPrice,
+        if (maxTicketPrice != null) 'max_ticket_price': maxTicketPrice,
+        'is_free': isFree,
+        if (ticketSalesStart != null)
+          'ticket_sales_start': ticketSalesStart!.toIso8601String(),
+        if (ticketSalesEnd != null)
+          'ticket_sales_end': ticketSalesEnd!.toIso8601String(),
+        'ticket_transfer_allowed': ticketTransferAllowed,
+        if (refundDeadline != null)
+          'refund_deadline': refundDeadline!.toIso8601String(),
+        'is_private': isPrivate,
+        'invite_only': inviteOnly,
+        if (eventPassword != null && eventPassword!.isNotEmpty)
+          'event_password': eventPassword,
+        if (bannerImage != null) 'banner_image': bannerImage,
+        if (galleryImages.isNotEmpty) 'gallery_images': galleryImages,
+        if (videoUrl != null) 'video_url': videoUrl,
+        if (organizerName != null) 'organizer_name': organizerName,
+        if (organizerEmail != null) 'organizer_email': organizerEmail,
+        if (organizerPhone != null) 'organizer_phone': organizerPhone,
+        'allow_waitlist': allowWaitlist,
+        'requires_age_verification': requiresAgeVerification,
+        if (minimumAge != null) 'minimum_age': minimumAge,
+      };
+}
+
+/// Request body for POST /api/v1/venues (and reused for PUT /:id).
+class VenueDraft {
+  const VenueDraft({
+    required this.name,
+    required this.venueType,
+    required this.address,
+    required this.country,
+    required this.capacity,
+    required this.basePrice,
+    this.description,
+    this.shortDescription,
+    this.venueCategory,
+    this.city,
+    this.county,
+    this.coordinates,
+    this.mapEmbedUrl,
+    this.directions,
+    this.maxCapacity,
+    this.pricingType = VenuePricingType.hourly,
+    this.minBookingHours = 2,
+    this.maxBookingHours = 12,
+    this.securityDeposit,
+    this.cleaningFee,
+    this.isAvailable = true,
+    this.availabilitySchedule,
+    this.unavailableDates = const [],
+    this.amenities = const [],
+    this.equipment = const [],
+    this.capacityFeatures,
+    this.restrictions = const [],
+    this.coverImage,
+    this.galleryImages = const [],
+    this.virtualTourUrl,
+    this.contactName,
+    this.contactPhone,
+    this.contactEmail,
+  });
+
+  final String name;
+  final String venueType;
+  final String address;
+  final String country;
+  final int capacity;
+  final double basePrice;
+  final String? description;
+  final String? shortDescription;
+  final String? venueCategory;
+  final String? city;
+  final String? county;
+  final Coordinates? coordinates;
+  final String? mapEmbedUrl;
+  final String? directions;
+  final int? maxCapacity;
+  final String pricingType;
+  final int minBookingHours;
+  final int maxBookingHours;
+  final double? securityDeposit;
+  final double? cleaningFee;
+  final bool isAvailable;
+  final Map<String, dynamic>? availabilitySchedule;
+  final List<String> unavailableDates;
+  final List<String> amenities;
+  final List<String> equipment;
+  final Map<String, dynamic>? capacityFeatures;
+  final List<String> restrictions;
+  final String? coverImage;
+  final List<String> galleryImages;
+  final String? virtualTourUrl;
+  final String? contactName;
+  final String? contactPhone;
+  final String? contactEmail;
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'venue_type': venueType,
+        'address': address,
+        'country': country,
+        'capacity': capacity,
+        'base_price': basePrice,
+        if (description != null) 'description': description,
+        if (shortDescription != null) 'short_description': shortDescription,
+        if (venueCategory != null) 'venue_category': venueCategory,
+        if (city != null) 'city': city,
+        if (county != null) 'county': county,
+        if (coordinates != null) 'coordinates': coordinates!.toJson(),
+        if (mapEmbedUrl != null) 'map_embed_url': mapEmbedUrl,
+        if (directions != null) 'directions': directions,
+        if (maxCapacity != null) 'max_capacity': maxCapacity,
+        'pricing_type': pricingType,
+        'min_booking_hours': minBookingHours,
+        'max_booking_hours': maxBookingHours,
+        if (securityDeposit != null) 'security_deposit': securityDeposit,
+        if (cleaningFee != null) 'cleaning_fee': cleaningFee,
+        'is_available': isAvailable,
+        if (availabilitySchedule != null)
+          'availability_schedule': availabilitySchedule,
+        if (unavailableDates.isNotEmpty) 'unavailable_dates': unavailableDates,
+        if (amenities.isNotEmpty) 'amenities': amenities,
+        if (equipment.isNotEmpty) 'equipment': equipment,
+        if (capacityFeatures != null) 'capacity_features': capacityFeatures,
+        if (restrictions.isNotEmpty) 'restrictions': restrictions,
+        if (coverImage != null) 'cover_image': coverImage,
+        if (galleryImages.isNotEmpty) 'gallery_images': galleryImages,
+        if (virtualTourUrl != null) 'virtual_tour_url': virtualTourUrl,
+        if (contactName != null) 'contact_name': contactName,
+        if (contactPhone != null) 'contact_phone': contactPhone,
+        if (contactEmail != null) 'contact_email': contactEmail,
+      };
+}
+
+/// Request body for POST /api/v1/events/:id/tickets (and PUT .../:ticket_id).
+class TicketDraft {
+  const TicketDraft({
+    required this.type,
+    required this.name,
+    required this.price,
+    required this.quantity,
+    this.tier,
+    this.description,
+    this.originalPrice,
+    this.serviceFee,
+    this.processingFee,
+    this.maxPerUser,
+    this.minPerUser,
+    this.salesStart,
+    this.salesEnd,
+    this.earlyBirdDeadline,
+    this.isTransferable,
+    this.isRefundable,
+    this.requiresIdCheck,
+    this.customFields,
+    this.benefits = const [],
+    this.isActive = true,
+    this.isHidden = false,
+  });
+
+  final String type;
+  final String name;
+  final double price;
+  final int quantity;
+  final String? tier;
+  final String? description;
+  final double? originalPrice;
+  final double? serviceFee;
+  final double? processingFee;
+  final int? maxPerUser;
+  final int? minPerUser;
+  final DateTime? salesStart;
+  final DateTime? salesEnd;
+  final DateTime? earlyBirdDeadline;
+  final bool? isTransferable;
+  final bool? isRefundable;
+  final bool? requiresIdCheck;
+  final Map<String, dynamic>? customFields;
+  final List<String> benefits;
+  final bool isActive;
+  final bool isHidden;
+
+  Map<String, dynamic> toJson() => {
+        'type': type,
+        'name': name,
+        'price': price,
+        'quantity': quantity,
+        if (tier != null) 'tier': tier,
+        if (description != null) 'description': description,
+        if (originalPrice != null) 'original_price': originalPrice,
+        if (serviceFee != null) 'service_fee': serviceFee,
+        if (processingFee != null) 'processing_fee': processingFee,
+        if (maxPerUser != null) 'max_per_user': maxPerUser,
+        if (minPerUser != null) 'min_per_user': minPerUser,
+        if (salesStart != null) 'sales_start': salesStart!.toIso8601String(),
+        if (salesEnd != null) 'sales_end': salesEnd!.toIso8601String(),
+        if (earlyBirdDeadline != null)
+          'early_bird_deadline': earlyBirdDeadline!.toIso8601String(),
+        if (isTransferable != null) 'is_transferable': isTransferable,
+        if (isRefundable != null) 'is_refundable': isRefundable,
+        if (requiresIdCheck != null) 'requires_id_check': requiresIdCheck,
+        if (customFields != null) 'custom_fields': customFields,
+        if (benefits.isNotEmpty) 'benefits': benefits,
+        'is_active': isActive,
+        'is_hidden': isHidden,
+      };
+}
+
+/// Request body for POST /api/v1/events/:id/tickets/:ticket_id/purchase.
+class PurchaseTicketRequest {
+  const PurchaseTicketRequest({required this.quantity});
+
+  final int quantity;
+
+  Map<String, dynamic> toJson() => {'quantity': quantity};
+}
+
 /// String constants matching the donjo_event backend values.
 abstract final class EventStatus {
   static const draft = 'draft';
